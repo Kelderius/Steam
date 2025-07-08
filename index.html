@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Steam Library Manager</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+	<style>
+		:root {
+			--steam-blue: #171a21;
+			--steam-dark: #0e1117;
+			--steam-light: #1b2838;
+			--steam-accent: #66c0f4;
+			--steam-green: #5ba32b;
+			--steam-yellow: #e9b741;
+			--steam-text: #c6d4df;
+			--steam-border: #2a475e;
+			--sidebar-width: 280px;
+			--header-height: 60px;
+			--transition-speed: 0.3s;
+		}
+		
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		}
+		
+		body {
+			background: linear-gradient(135deg, var(--steam-dark), var(--steam-blue));
+			color: var(--steam-text);
+			line-height: 1.6;
+			min-height: 100vh;
+			overflow-x: hidden;
+			padding-top: var(--header-height);
+			transition: padding-left var(--transition-speed);
+		}
+		
+		/* Шапка */
+		header {
+			background: linear-gradient(135deg, var(--steam-blue), var(--steam-light));
+			color: white;
+			height: var(--header-height);
+			text-align: center;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 100;
+			border-bottom: 1px solid var(--steam-border);
+			display: flex;
+			align-items: center;
+			padding: 0 1rem;
+		}
+		
+		.menu-toggle {
+			background: none;
+			border: none;
+			color: var(--steam-accent);
+			font-size: 1.5rem;
+			cursor: pointer;
+			margin-right: 1rem;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: background-color 0.2s;
+		}
+		
+		.menu-toggle:hover {
+			background-color: rgba(102, 192, 244, 0.2);
+		}
+		
+		.header-title {
+			flex: 1;
+			text-align: left;
+			font-size: 1.4rem;
+			color: var(--steam-accent);
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		
+		/* Боковое меню */
+		.sidebar {
+			position: fixed;
+			top: var(--header-height);
+			left: calc(-1 * var(--sidebar-width));
+			width: var(--sidebar-width);
+			height: calc(100vh - var(--header-height));
+			background: var(--steam-dark);
+			border-right: 1px solid var(--steam-border);
+			z-index: 99;
+			transition: transform var(--transition-speed);
+			overflow-y: auto;
+			padding: 1rem 0;
+			box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+		}
+		
+		.sidebar.open {
+			transform: translateX(var(--sidebar-width));
+		}
+		
+		.nav-btn {
+			display: flex;
+			align-items: center;
+			padding: 1rem 1.5rem;
+			color: var(--steam-text);
+			text-decoration: none;
+			transition: all 0.2s;
+			gap: 0.8rem;
+			border-left: 3px solid transparent;
+		}
+		
+		.nav-btn:hover {
+			background-color: rgba(102, 192, 244, 0.1);
+			color: var(--steam-accent);
+		}
+		
+		.nav-btn.active {
+			background-color: rgba(102, 192, 244, 0.15);
+			color: var(--steam-accent);
+			border-left: 3px solid var(--steam-accent);
+		}
+		
+		.nav-btn i {
+			width: 24px;
+			text-align: center;
+		}
+		
+		/* Основной контент */
+		.container {
+			max-width: 1200px;
+			margin: 2rem auto;
+			padding: 0 1.5rem;
+			transition: padding-left var(--transition-speed);
+		}
+		
+		.section {
+			display: none;
+			background-color: rgba(23, 26, 33, 0.8);
+			border-radius: 8px;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+			padding: 2rem;
+			margin-bottom: 2rem;
+			animation: fadeIn 0.5s ease;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.section.active {
+			display: block;
+		}
+		
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		
+		.section-title {
+			color: var(--steam-accent);
+			margin-bottom: 1.5rem;
+			padding-bottom: 0.75rem;
+			border-bottom: 2px solid var(--steam-border);
+			font-size: 1.8rem;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		
+		/* Стили для библиотеки игр */
+		.library-list {
+			list-style: none;
+			border: 1px solid var(--steam-border);
+			border-radius: 6px;
+			overflow: hidden;
+		}
+		
+		.game-item {
+			padding: 1rem;
+			border-bottom: 1px solid var(--steam-border);
+			background-color: rgba(27, 40, 56, 0.5);
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+		
+		.game-item:hover {
+			background-color: rgba(27, 40, 56, 0.8);
+		}
+		
+		.game-item:last-child {
+			border-bottom: none;
+		}
+		
+		.game-item.expanded {
+			background-color: rgba(27, 40, 56, 0.9);
+		}
+		
+		.game-header {
+			display: flex;
+			align-items: center;
+		}
+		
+		.game-number {
+			font-size: 1.2rem;
+			font-weight: bold;
+			min-width: 40px;
+			text-align: center;
+			color: var(--steam-accent);
+		}
+		
+		.game-details {
+			flex: 1;
+			margin: 0 1rem;
+		}
+		
+		.game-title {
+			font-weight: 600;
+			margin-bottom: 0.25rem;
+			color: white;
+		}
+		
+		.game-title.completed {
+			color: var(--steam-green);
+		}
+		
+		.achievement-progress {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.9rem;
+			margin-top: 0.5rem;
+		}
+		
+		.progress-bar {
+			flex: 1;
+			height: 8px;
+			background-color: var(--steam-light);
+			border-radius: 4px;
+			overflow: hidden;
+		}
+		
+		.progress-fill {
+			height: 100%;
+			background: linear-gradient(to right, var(--steam-green), var(--steam-yellow));
+			border-radius: 4px;
+		}
+		
+		.achievement-count {
+			min-width: 120px;
+			text-align: right;
+			font-size: 0.85rem;
+		}
+		
+		.game-expand-icon {
+			margin-left: auto;
+			color: var(--steam-accent);
+			transition: transform 0.3s;
+		}
+		
+		.game-item.expanded .game-expand-icon {
+			transform: rotate(180deg);
+		}
+		
+		.achievements-container {
+			background-color: var(--steam-light);
+			border-radius: 6px;
+			padding: 1rem;
+			margin-top: 1rem;
+			display: none;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.game-item.expanded .achievements-container {
+			display: block;
+		}
+		
+		.achievement-item {
+			display: flex;
+			align-items: center;
+			padding: 0.8rem;
+			border-bottom: 1px solid var(--steam-border);
+		}
+		
+		.achievement-item:last-child {
+			border-bottom: none;
+		}
+		
+		.achievement-checkbox {
+			width: 20px;
+			height: 20px;
+			margin-right: 1rem;
+			cursor: pointer;
+		}
+		
+		.achievement-details {
+			flex: 1;
+		}
+		
+		.achievement-title {
+			font-weight: 600;
+			color: white;
+			margin-bottom: 0.25rem;
+		}
+		
+		.achievement-description {
+			font-size: 0.9rem;
+			color: var(--steam-text);
+			font-style: italic;
+		}
+		
+		/* Форма добавления игры */
+		.add-game-form {
+			max-width: 600px;
+			margin: 0 auto;
+			background-color: var(--steam-light);
+			border-radius: 8px;
+			padding: 2rem;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.form-group {
+			margin-bottom: 1.5rem;
+		}
+		
+		.form-group label {
+			display: block;
+			margin-bottom: 0.5rem;
+			font-weight: 600;
+			color: var(--steam-accent);
+		}
+		
+		.form-group input, .form-group textarea {
+			width: 100%;
+			padding: 0.8rem;
+			background-color: var(--steam-blue);
+			border: 1px solid var(--steam-border);
+			border-radius: 4px;
+			color: white;
+			font-size: 1rem;
+		}
+		
+		.form-group textarea {
+			min-height: 100px;
+			resize: vertical;
+		}
+		
+		.form-actions {
+			display: flex;
+			gap: 1rem;
+			justify-content: flex-end;
+		}
+		
+		.btn {
+			padding: 0.8rem 1.5rem;
+			border-radius: 4px;
+			cursor: pointer;
+			font-weight: 600;
+			transition: all 0.3s ease;
+			border: none;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		
+		.btn-primary {
+			background: linear-gradient(to right, var(--steam-green), var(--steam-accent));
+			color: var(--steam-dark);
+		}
+		
+		.btn-secondary {
+			background-color: var(--steam-blue);
+			color: var(--steam-text);
+			border: 1px solid var(--steam-border);
+		}
+		
+		.btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+		}
+		
+		/* Стили для рандомайзера */
+		.randomizer-container {
+			max-width: 600px;
+			margin: 0 auto;
+			background-color: var(--steam-light);
+			border-radius: 8px;
+			padding: 2rem;
+			text-align: center;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.range-inputs {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			margin: 1.5rem 0;
+		}
+		
+		.range-input {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		
+		.range-input label {
+			margin-bottom: 0.5rem;
+			font-weight: 600;
+		}
+		
+		.range-input input {
+			width: 100px;
+			padding: 0.8rem;
+			text-align: center;
+			background-color: var(--steam-blue);
+			border: 1px solid var(--steam-border);
+			border-radius: 4px;
+			color: white;
+			font-size: 1.2rem;
+			font-weight: bold;
+		}
+		
+		.random-btn {
+			background: linear-gradient(to right, var(--steam-green), var(--steam-accent));
+			color: var(--steam-dark);
+			border: none;
+			padding: 1rem 2rem;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 1.1rem;
+			font-weight: bold;
+			transition: all 0.3s ease;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			margin: 1rem 0;
+		}
+		
+		.random-btn:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 4px 12px rgba(91, 163, 43, 0.4);
+		}
+		
+		.result-container {
+			margin-top: 2rem;
+			padding: 2rem;
+			background-color: var(--steam-blue);
+			border-radius: 8px;
+			border: 1px solid var(--steam-border);
+			display: none;
+		}
+		
+		.result-number {
+			font-size: 3rem;
+			font-weight: bold;
+			color: var(--steam-accent);
+			margin-bottom: 0.5rem;
+		}
+		
+		.result-title {
+			font-size: 1.8rem;
+			color: white;
+			margin-bottom: 1rem;
+		}
+		
+		/* Стили для статистики */
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 1.5rem;
+			margin-top: 1.5rem;
+		}
+		
+		.stat-card {
+			background-color: var(--steam-light);
+			border-radius: 8px;
+			padding: 1.5rem;
+			text-align: center;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.stat-icon {
+			font-size: 2.5rem;
+			margin-bottom: 1rem;
+			color: var(--steam-accent);
+		}
+		
+		.stat-value {
+			font-size: 2.2rem;
+			font-weight: bold;
+			color: white;
+			margin: 0.5rem 0;
+		}
+		
+		.stat-label {
+			color: var(--steam-text);
+			font-size: 1.1rem;
+		}
+		
+		.chart-container {
+			margin-top: 2rem;
+			background-color: var(--steam-light);
+			border-radius: 8px;
+			padding: 1.5rem;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.chart-title {
+			color: var(--steam-accent);
+			margin-bottom: 1rem;
+			text-align: center;
+			font-size: 1.4rem;
+		}
+		
+		.chart {
+			height: 300px;
+			display: flex;
+			align-items: flex-end;
+			justify-content: space-around;
+			padding: 1rem;
+			border: 1px solid var(--steam-border);
+			border-radius: 6px;
+			background-color: var(--steam-blue);
+		}
+		
+		.chart-bar {
+			width: 30px;
+			background: linear-gradient(to top, var(--steam-green), var(--steam-accent));
+			border-radius: 4px 4px 0 0;
+			position: relative;
+			text-align: center;
+		}
+		
+		.chart-label {
+			position: absolute;
+			bottom: -25px;
+			left: 0;
+			right: 0;
+			font-size: 0.8rem;
+			color: var(--steam-text);
+		}
+		
+		/* Форма для достижений */
+		.achievement-form {
+			margin-top: 1.5rem;
+			padding: 1rem;
+			background-color: var(--steam-light);
+			border-radius: 6px;
+			border: 1px solid var(--steam-border);
+		}
+		
+		.add-btn {
+			background-color: var(--steam-green);
+			color: white;
+			border: none;
+			padding: 0.8rem 1.5rem;
+			border-radius: 4px;
+			cursor: pointer;
+			font-weight: 600;
+			transition: all 0.3s ease;
+		}
+		
+		.add-btn:hover {
+			background-color: #4d8c25;
+		}
+		
+		/* Подвал */
+		footer {
+			text-align: center;
+			padding: 2rem;
+			color: var(--steam-text);
+			background-color: var(--steam-blue);
+			margin-top: 3rem;
+			border-top: 1px solid var(--steam-border);
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.range-inputs {
+				flex-direction: column;
+				align-items: center;
+			}
+			
+			.game-header {
+				flex-wrap: wrap;
+			}
+			
+			.game-number {
+				margin-bottom: 0.5rem;
+			}
+		}
+		
+		@media (min-width: 992px) {
+			body {
+				padding-left: var(--sidebar-width);
+			}
+			
+			.sidebar {
+				transform: translateX(var(--sidebar-width));
+				left: 0;
+			}
+			
+			.menu-toggle {
+				display: none;
+			}
+		}
+	</style>
+</head>
+<body>
+	<!-- Шапка с кнопкой меню -->
+	<header>
+		<button class="menu-toggle" id="menu-toggle">
+			<i class="fas fa-bars"></i>
+		</button>
+		<div class="header-title">
+			<i class="fab fa-steam"></i> Steam Library Manager
+		</div>
+	</header>
+	
+	<!-- Боковое меню -->
+	<nav class="sidebar" id="sidebar">
+		<a href="#" class="nav-btn active" data-section="library">
+			<i class="fas fa-gamepad"></i>
+			<span>Библиотека игр</span>
+		</a>
+		<a href="#" class="nav-btn" data-section="randomizer">
+			<i class="fas fa-random"></i>
+			<span>Рандомайзер</span>
+		</a>
+		<a href="#" class="nav-btn" data-section="stats">
+			<i class="fas fa-chart-bar"></i>
+			<span>Статистика</span>
+		</a>
+		<a href="#" class="nav-btn" data-section="add-game">
+			<i class="fas fa-plus-circle"></i>
+			<span>Добавить игру</span>
+		</a>
+	</nav>
+	
+	<!-- Основной контент -->
+	<div class="container">
+		<!-- Библиотека -->
+		<section id="library" class="section active">
+			<h2 class="section-title"><i class="fas fa-gamepad"></i> Игровая библиотека</h2>
+			<p>Список ваших игр с отслеживанием достижений. Нажмите на игру, чтобы посмотреть её достижения.</p>
+			
+			<ul class="library-list" id="games-list">
+				<!-- Игры будут добавлены динамически -->
+			</ul>
+		</section>
+		
+		<!-- Рандомайзер -->
+		<section id="randomizer" class="section">
+			<h2 class="section-title"><i class="fas fa-random"></i> Рандомайзер игр</h2>
+			<p>Выберите случайную игру из вашей библиотеки</p>
+			
+			<div class="randomizer-container">
+				<div class="range-inputs">
+					<div class="range-input">
+						<label for="min-number">От</label>
+						<input type="number" id="min-number" min="1" value="1">
+					</div>
+					<div class="range-input">
+						<label for="max-number">До</label>
+						<input type="number" id="max-number" min="1" value="10">
+					</div>
+				</div>
+				
+				<button class="random-btn" id="randomize-btn">
+					<i class="fas fa-dice"></i> Выбрать случайную игру
+				</button>
+				
+				<div class="result-container" id="result-container">
+					<div class="result-number" id="result-number">#42</div>
+					<div class="result-title" id="result-title">The Witcher 3: Wild Hunt</div>
+					<p>Наслаждайтесь игрой!</p>
+				</div>
+			</div>
+		</section>
+		
+		<!-- Статистика -->
+		<section id="stats" class="section">
+			<h2 class="section-title"><i class="fas fa-chart-bar"></i> Статистика достижений</h2>
+			<p>Обзор вашего прогресса по всем играм</p>
+			
+			<div class="stats-grid">
+				<div class="stat-card">
+					<i class="fas fa-gamepad stat-icon"></i>
+					<div class="stat-value" id="total-games">0</div>
+					<div class="stat-label">Всего игр</div>
+				</div>
+				
+				<div class="stat-card">
+					<i class="fas fa-trophy stat-icon"></i>
+					<div class="stat-value" id="total-achievements">0</div>
+					<div class="stat-label">Всего достижений</div>
+				</div>
+				
+				<div class="stat-card">
+					<i class="fas fa-check-circle stat-icon"></i>
+					<div class="stat-value" id="completed-achievements">0</div>
+					<div class="stat-label">Выполнено достижений</div>
+				</div>
+				
+				<div class="stat-card">
+					<i class="fas fa-crown stat-icon"></i>
+					<div class="stat-value" id="perfect-games">0</div>
+					<div class="stat-label">Идеальных игр (100%)</div>
+				</div>
+				
+				<div class="stat-card">
+					<i class="fas fa-percentage stat-icon"></i>
+					<div class="stat-value" id="avg-percentage">0%</div>
+					<div class="stat-label">Средний процент выполнения</div>
+				</div>
+				
+				<div class="stat-card">
+					<i class="fas fa-medal stat-icon"></i>
+					<div class="stat-value" id="perfect-achievements">0</div>
+					<div class="stat-label">Достижений в идеальных играх</div>
+				</div>
+			</div>
+			
+			<div class="chart-container">
+				<h3 class="chart-title">Прогресс выполнения достижений</h3>
+				<div class="chart" id="progress-chart">
+					<!-- График будет добавлен динамически -->
+				</div>
+			</div>
+		</section>
+		
+		<!-- Добавление игры -->
+		<section id="add-game" class="section">
+			<h2 class="section-title"><i class="fas fa-plus-circle"></i> Добавить новую игру</h2>
+			
+			<div class="add-game-form">
+				<div class="form-group">
+					<label for="game-title">Название игры *</label>
+					<input type="text" id="game-title" required placeholder="Введите название игры">
+				</div>
+				
+				<div class="form-group">
+					<label for="game-description">Описание (необязательно)</label>
+					<textarea id="game-description" placeholder="Краткое описание игры"></textarea>
+				</div>
+				
+				<div class="form-group">
+					<label for="game-release">Год выпуска</label>
+					<input type="number" id="game-release" min="1980" max="2023" placeholder="Год выпуска игры">
+				</div>
+				
+				<div class="form-group">
+					<label>Достижения</label>
+					<p class="hint">Добавьте достижения после создания игры</p>
+				</div>
+				
+				<div class="form-actions">
+					<button class="btn btn-secondary" id="cancel-add">
+						<i class="fas fa-times"></i> Отмена
+					</button>
+					<button class="btn btn-primary" id="save-game">
+						<i class="fas fa-save"></i> Сохранить игру
+					</button>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<!-- Подвал -->
+	<footer>
+		<p>Steam Library Manager &copy; 2023 | Отслеживайте свои игровые достижения</p>
+	</footer>
+	
+	<script>
+		// Пример данных по умолчанию
+		const defaultGamesData = [
+			{
+				id: 1,
+				title: "The Witcher 3: Wild Hunt",
+				achievements: [
+					{ id: 1, title: "Вооружен и опасен", description: "Найти все элементы одного комплекта ведьмачьего снаряжения и воспользоваться ими", completed: true },
+					{ id: 2, title: "Картограф", description: "Разведать все места силы в Велене, Скеллиге и Новиграде", completed: true },
+					{ id: 3, title: "Мастер меча", description: "Выполнить все контракты на монстров", completed: false },
+					{ id: 4, title: "Коллекционер", description: "Собрать все карты гвинта", completed: false }
+				]
+			},
+			{
+				id: 2,
+				title: "Cyberpunk 2077",
+				achievements: [
+					{ id: 1, title: "Легенда Найт-Сити", description: "Достигнуть максимального уровня уличной репутации", completed: true },
+					{ id: 2, title: "Мастер быстрого взлома", description: "Применить 50 быстрых взломов", completed: true },
+					{ id: 3, title: "До последнего патрона", description: "Уничтожить всех врагов в зоне боевых действий", completed: false }
+				]
+			},
+			{
+				id: 3,
+				title: "Red Dead Redemption 2",
+				achievements: [
+					{ id: 1, title: "Зоолог", description: "Изучить все виды животных", completed: false },
+					{ id: 2, title: "Исследователь", description: "Нарисовать все точки интереса на карте", completed: true }
+				]
+			}
+		];
+		
+		// DOM элементы
+		const menuToggle = document.getElementById('menu-toggle');
+		const sidebar = document.getElementById('sidebar');
+		const navBtns = document.querySelectorAll('.nav-btn');
+		const sections = document.querySelectorAll('.section');
+		const gamesList = document.getElementById('games-list');
+		const minNumberInput = document.getElementById('min-number');
+		const maxNumberInput = document.getElementById('max-number');
+		const randomizeBtn = document.getElementById('randomize-btn');
+		const resultContainer = document.getElementById('result-container');
+		const resultNumber = document.getElementById('result-number');
+		const resultTitle = document.getElementById('result-title');
+		const saveGameBtn = document.getElementById('save-game');
+		const cancelAddBtn = document.getElementById('cancel-add');
+		const gameTitleInput = document.getElementById('game-title');
+		
+		// Статистика
+		const totalGamesEl = document.getElementById('total-games');
+		const totalAchievementsEl = document.getElementById('total-achievements');
+		const completedAchievementsEl = document.getElementById('completed-achievements');
+		const perfectGamesEl = document.getElementById('perfect-games');
+		const avgPercentageEl = document.getElementById('avg-percentage');
+		const perfectAchievementsEl = document.getElementById('perfect-achievements');
+		
+		// Текущее состояние
+		let games = [];
+		let nextGameId = 1;
+		
+		// Функция для сохранения данных в localStorage
+		function saveData() {
+			const dataToSave = {
+				games,
+				nextGameId
+			};
+			localStorage.setItem('steamLibraryData', JSON.stringify(dataToSave));
+		}
+		
+		// Функция для загрузки данных из localStorage
+		function loadData() {
+			const savedData = localStorage.getItem('steamLibraryData');
+			if (savedData) {
+				try {
+					const parsedData = JSON.parse(savedData);
+					games = parsedData.games || [];
+					nextGameId = parsedData.nextGameId || 1;
+					return true;
+				} catch (e) {
+					console.error('Ошибка при загрузке данных:', e);
+					return false;
+				}
+			}
+			return false;
+		}
+		
+		// Инициализация приложения
+		function init() {
+			// Пытаемся загрузить сохраненные данные
+			const dataLoaded = loadData();
+			
+			// Если данных нет, используем пример по умолчанию
+			if (!dataLoaded || games.length === 0) {
+				games = [...defaultGamesData];
+				nextGameId = Math.max(...games.map(g => g.id), 0) + 1;
+			}
+			
+			// Переключение меню
+			menuToggle.addEventListener('click', () => {
+				sidebar.classList.toggle('open');
+				menuToggle.innerHTML = sidebar.classList.contains('open') ? 
+					'<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+			});
+			
+			// Навигация
+			navBtns.forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					e.preventDefault();
+					const sectionId = btn.dataset.section;
+					
+					// Обновляем активную кнопку
+					navBtns.forEach(b => b.classList.remove('active'));
+					btn.classList.add('active');
+					
+					// Показываем активную секцию
+					sections.forEach(section => {
+						section.classList.remove('active');
+						if (section.id === sectionId) {
+							section.classList.add('active');
+							
+							// Обновляем статистику при переходе на вкладку
+							if (sectionId === 'stats') {
+								updateStats();
+							}
+						}
+					});
+					
+					// Закрываем меню на мобильных устройствах
+					if (window.innerWidth < 992) {
+						sidebar.classList.remove('open');
+						menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+					}
+				});
+			});
+			
+			// Рандомайзер
+			randomizeBtn.addEventListener('click', () => {
+				const min = parseInt(minNumberInput.value) || 1;
+				const max = parseInt(maxNumberInput.value) || games.length;
+				
+				if (min > max) {
+					alert("Минимальное значение не может быть больше максимального");
+					return;
+				}
+				
+				if (min < 1 || max < 1) {
+					alert("Номера игр должны быть положительными числами");
+					return;
+				}
+				
+				const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+				const game = games[randomNumber - 1];
+				
+				if (game) {
+					resultNumber.textContent = `#${randomNumber}`;
+					resultTitle.textContent = game.title;
+					resultContainer.style.display = 'block';
+				} else {
+					alert("Игра с таким номером не найдена. Проверьте диапазон.");
+				}
+			});
+			
+			// Добавление игры
+			saveGameBtn.addEventListener('click', () => {
+				const title = gameTitleInput.value.trim();
+				
+				if (!title) {
+					alert("Пожалуйста, введите название игры");
+					return;
+				}
+				
+				const newGame = {
+					id: nextGameId++,
+					title,
+					achievements: [],
+					expanded: true // Автоматически разворачиваем новую игру
+				};
+				
+				games.push(newGame);
+				
+				// Очищаем форму
+				gameTitleInput.value = '';
+				
+				// Перерисовываем игры
+				renderGames();
+				updateStats();
+				saveData(); // Сохраняем изменения
+				
+				// Переходим в библиотеку и прокручиваем к новой игре
+				document.querySelector('[data-section="library"]').click();
+				setTimeout(() => {
+					const lastGame = document.querySelector('.game-item:last-child');
+					if (lastGame) {
+						lastGame.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+					}
+				}, 100);
+				
+				alert(`Игра "${title}" успешно добавлена в библиотеку!`);
+			});
+			
+			// Отмена добавления игры
+			cancelAddBtn.addEventListener('click', () => {
+				document.querySelector('[data-section="library"]').click();
+			});
+			
+			// Первоначальная отрисовка
+			renderGames();
+			updateStats();
+		}
+		
+		// Отрисовка игр
+		function renderGames() {
+			gamesList.innerHTML = '';
+			
+			if (games.length === 0) {
+				gamesList.innerHTML = `
+					<div style="text-align: center; padding: 3rem; color: var(--steam-text);">
+						<i class="fas fa-gamepad" style="font-size: 4rem; margin-bottom: 1rem; color: var(--steam-accent);"></i>
+						<h3>Ваша библиотека пуста</h3>
+						<p>Добавьте первую игру, чтобы начать отслеживать достижения</p>
+					</div>
+				`;
+				return;
+			}
+			
+			games.forEach((game, index) => {
+				const completed = game.achievements.filter(a => a.completed).length;
+				const total = game.achievements.length;
+				const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+				const isCompleted = percentage === 100;
+				const isExpanded = game.expanded || false;
+				
+				const gameItem = document.createElement('li');
+				gameItem.className = `game-item ${isExpanded ? 'expanded' : ''}`;
+				gameItem.innerHTML = `
+					<div class="game-header">
+						<div class="game-number">#${index + 1}</div>
+						<div class="game-details">
+							<div class="game-title ${isCompleted ? 'completed' : ''}">${game.title}</div>
+							<div class="achievement-progress">
+								<div class="progress-bar">
+									<div class="progress-fill" style="width: ${percentage}%"></div>
+								</div>
+								<div class="achievement-count">${completed}/${total} (${percentage}%)</div>
+							</div>
+						</div>
+						<div class="game-expand-icon">
+							<i class="fas fa-chevron-${isExpanded ? 'up' : 'down'}"></i>
+						</div>
+					</div>
+					<div class="achievements-container">
+						<!-- Достижения будут добавлены динамически -->
+					</div>
+				`;
+				
+				gamesList.appendChild(gameItem);
+				
+				// Отрисовка достижений для этой игры
+				renderAchievements(game, gameItem);
+				
+				// Переключение видимости достижений
+				gameItem.addEventListener('click', (e) => {
+					// Проверяем, не было ли клика по чекбоксу или форме
+					if (e.target.classList.contains('achievement-checkbox') || 
+						e.target.classList.contains('add-btn') ||
+						e.target.tagName === 'INPUT' || 
+						e.target.tagName === 'TEXTAREA') {
+						return;
+					}
+					
+					// Переключаем состояние
+					game.expanded = !game.expanded;
+					gameItem.classList.toggle('expanded');
+					
+					// Обновляем иконку
+					const icon = gameItem.querySelector('.game-expand-icon i');
+					icon.className = game.expanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+					
+					saveData(); // Сохраняем состояние раскрытия
+				});
+			});
+		}
+		
+		// Отрисовка достижений для игры
+		function renderAchievements(game, gameItem) {
+			const container = gameItem.querySelector('.achievements-container');
+			if (!container) return;
+			
+			container.innerHTML = '';
+			
+			if (game.achievements.length === 0) {
+				container.innerHTML = `
+					<div style="text-align: center; padding: 1rem; color: var(--steam-text);">
+						<i class="fas fa-trophy" style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--steam-accent);"></i>
+						<p>Для этой игры пока нет достижений</p>
+					</div>
+				`;
+			} else {
+				game.achievements.forEach(achievement => {
+					const achievementItem = document.createElement('div');
+					achievementItem.className = 'achievement-item';
+					achievementItem.innerHTML = `
+						<input type="checkbox" class="achievement-checkbox" 
+							   ${achievement.completed ? 'checked' : ''}
+							   data-game="${game.id}" data-ach="${achievement.id}">
+						<div class="achievement-details">
+							<div class="achievement-title">${achievement.title}</div>
+							<div class="achievement-description">${achievement.description}</div>
+						</div>
+					`;
+					container.appendChild(achievementItem);
+					
+					// Обработчик изменения состояния
+					const checkbox = achievementItem.querySelector('.achievement-checkbox');
+					checkbox.addEventListener('change', function() {
+						const ach = game.achievements.find(a => a.id === parseInt(this.dataset.ach));
+						if (ach) {
+							ach.completed = this.checked;
+							renderGames();
+							updateStats();
+							saveData(); // Сохраняем изменения
+						}
+					});
+				});
+			}
+			
+			// Форма для добавления нового достижения
+			const achievementForm = document.createElement('div');
+			achievementForm.className = 'achievement-form';
+			achievementForm.innerHTML = `
+				<h3><i class="fas fa-plus-circle"></i> Добавить новое достижение</h3>
+				<div class="form-group">
+					<input type="text" class="ach-title" placeholder="Название достижения" data-game="${game.id}">
+				</div>
+				<div class="form-group">
+					<textarea class="ach-desc" placeholder="Описание достижения" data-game="${game.id}"></textarea>
+				</div>
+				<button class="add-btn" data-game="${game.id}">
+					<i class="fas fa-plus"></i> Добавить
+				</button>
+			`;
+			container.appendChild(achievementForm);
+			
+			// Обработчик добавления достижения
+			const addBtn = achievementForm.querySelector('.add-btn');
+			addBtn.addEventListener('click', function() {
+				const gameId = parseInt(this.dataset.game);
+				const gameObj = games.find(g => g.id === gameId);
+				
+				if (!gameObj) return;
+				
+				const titleInput = achievementForm.querySelector('.ach-title');
+				const descInput = achievementForm.querySelector('.ach-desc');
+				const title = titleInput.value.trim();
+				
+				if (!title) {
+					alert("Пожалуйста, введите название достижения");
+					return;
+				}
+				
+				// Создаем новое достижение
+				const newAchievement = {
+					id: gameObj.achievements.length + 1,
+					title,
+					description: descInput.value.trim(),
+					completed: false
+				};
+				
+				gameObj.achievements.push(newAchievement);
+				titleInput.value = '';
+				descInput.value = '';
+				
+				// Обновляем интерфейс
+				renderGames();
+				updateStats();
+				saveData(); // Сохраняем изменения
+				
+				// Прокручиваем к новому достижению
+				setTimeout(() => {
+					const lastAchievement = gameItem.querySelector('.achievement-item:last-child');
+					if (lastAchievement) {
+						lastAchievement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+					}
+				}, 100);
+			});
+		}
+		
+		// Обновление статистики
+		function updateStats() {
+			// Общее количество игр
+			totalGamesEl.textContent = games.length;
+			
+			// Подсчет достижений
+			let totalAchievements = 0;
+			let completedAchievements = 0;
+			let perfectGames = 0;
+			let perfectAchievements = 0;
+			let totalPercentage = 0;
+			
+			games.forEach(game => {
+				const total = game.achievements.length;
+				const completed = game.achievements.filter(a => a.completed).length;
+				const percentage = total > 0 ? (completed / total) * 100 : 0;
+				
+				totalAchievements += total;
+				completedAchievements += completed;
+				totalPercentage += percentage;
+				
+				if (percentage === 100) {
+					perfectGames++;
+					perfectAchievements += total;
+				}
+			});
+			
+			// Обновляем элементы
+			totalAchievementsEl.textContent = totalAchievements;
+			completedAchievementsEl.textContent = completedAchievements;
+			perfectGamesEl.textContent = perfectGames;
+			perfectAchievementsEl.textContent = perfectAchievements;
+			
+			// Средний процент
+			const avgPercentage = games.length > 0 ? Math.round(totalPercentage / games.length) : 0;
+			avgPercentageEl.textContent = `${avgPercentage}%`;
+			
+			// Обновляем график
+			updateChart();
+		}
+		
+		// Обновление графика
+		function updateChart() {
+			const chart = document.getElementById('progress-chart');
+			chart.innerHTML = '';
+			
+			// Собираем данные для графика
+			const percentages = [];
+			for (let i = 0; i <= 100; i += 20) {
+				const count = games.filter(game => {
+					const total = game.achievements.length;
+					if (total === 0) return false;
+					const completed = game.achievements.filter(a => a.completed).length;
+					const percentage = Math.round((completed / total) * 100);
+					return percentage >= i && percentage < i + 20;
+				}).length;
+				
+				percentages.push({ range: `${i}-${i+19}%`, count });
+			}
+			
+			// Находим максимальное значение для масштабирования
+			const maxCount = Math.max(...percentages.map(p => p.count), 1);
+			
+			// Отрисовываем столбцы
+			percentages.forEach((p, index) => {
+				const height = p.count > 0 ? (p.count / maxCount) * 250 : 10;
+				const bar = document.createElement('div');
+				bar.className = 'chart-bar';
+				bar.style.height = `${height}px`;
+				bar.innerHTML = `<div class="chart-value">${p.count}</div>
+								 <div class="chart-label">${p.range}</div>`;
+				chart.appendChild(bar);
+			});
+		}
+		
+		// Запуск приложения
+		document.addEventListener('DOMContentLoaded', init);
+	</script>
+</body>
+</html>
